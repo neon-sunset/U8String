@@ -15,7 +15,8 @@ where T: struct {
     readonly U8String _source;
     readonly T _pattern;
 
-    internal Split(U8String source, T pattern) {
+    public Split(U8String source, T pattern) {
+        ThrowHelpers.CheckPattern(pattern);
         _source = source;
         _pattern = pattern;
     }

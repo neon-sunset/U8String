@@ -79,14 +79,11 @@ static class ThrowHelpers {
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void CheckPattern<T>(T pattern) {
-        if (pattern is byte b) {
-            CheckAscii(b);
-        }
-        else if (pattern is char c) {
-            CheckSurrogate(c);
-        }
-        else if (pattern is not (Rune or Splitter or Pattern)) {
-            Unsupported();
+        switch (pattern) {
+            case byte b: CheckAscii(b); break;
+            case char c: CheckSurrogate(c); break;
+            case not (Rune or U8String or Pattern or Splitter):
+                Unsupported(); break;
         }
 
         [DoesNotReturn, StackTraceHidden]

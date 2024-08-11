@@ -32,7 +32,7 @@ public readonly partial struct U8String
     public ReadOnlyMemory<byte> AsMemory()
     {
         // Surely nothing can go wrong here, right?
-        return Unsafe.As<U8String, ReadOnlyMemory<byte>>(ref Unsafe.AsRef(in this));
+        return Unsafe.BitCast<U8String, ReadOnlyMemory<byte>>(this);
     }
 
     /// <summary>

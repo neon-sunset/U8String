@@ -9,13 +9,19 @@ namespace U8.Prototypes;
 
 // On RegexPattern: there will be a pattern iterator abstraction.
 interface Pattern {
-    // TODO: Why does this throw a TypeLoadException?
-    // public static ByteLookupPattern AsciiWhitespace { get; } = new("\t\n\v\f\r "u8);
-    // public static ByteLookupPattern AsciiUpper { get; } = new("ABCDEFGHIJKLMNOPQRSTUVWXYZ"u8);
-    // public static ByteLookupPattern AsciiLower { get; } = new("abcdefghijklmnopqrstuvwxyz"u8);
+    // https://github.com/dotnet/runtime/issues/104511
+    public static ByteLookupPattern AsciiWhitespace => Holder.AsciiWhitespace;
+    public static ByteLookupPattern AsciiUpper => Holder.AsciiUpper;
+    public static ByteLookupPattern AsciiLower => Holder.AsciiLower;
 
     Match Find(bytes source);
     Match FindLast(bytes source);
+
+    static class Holder {
+        public static readonly ByteLookupPattern AsciiWhitespace = new("\t\n\v\f\r "u8);
+        public static readonly ByteLookupPattern AsciiUpper = new("ABCDEFGHIJKLMNOPQRSTUVWXYZ"u8);
+        public static readonly ByteLookupPattern AsciiLower = new("abcdefghijklmnopqrstuvwxyz"u8);
+    }
 }
 
 interface ExtendedPattern: Pattern {
@@ -192,6 +198,7 @@ readonly struct SegmentMatch(
     int segmentOffset,
     int segmentLength,
     int remainderOffset) {
+
     public bool IsFound => SegmentLength > -1;
     public bool IsLast => RemainderOffset < 0;
     public readonly int SegmentOffset = segmentOffset;
