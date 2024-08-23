@@ -88,27 +88,19 @@ where T: struct {
             _ => MoveNextPrimitive()
         };
 
-        // TODO: Split between non-Splitter and Splitter paths
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool MoveNextPrimitive() {
-            Debug.Assert(_pattern is not (Pattern or Splitter));
+            Debug.Assert(_pattern is byte or char or Rune or U8String);
             var source = _remainder;
             if (source.Length > -1) {
                 var span = (bytes)_bytes.SliceUnsafe(source.Offset, source.Length);
-                int offset, length;
-                if (_pattern is byte b) {
-                    (offset, length) = (span.IndexOf(b), 1);
-                }
-                else if (_pattern is char c && c <= 0x7F) {
-                    (offset, length) = (span.IndexOf((byte)c), 1);
-                }
-                else if (_pattern is Rune r && r.Value <= 0x7F) {
-                    (offset, length) = (span.IndexOf((byte)r.Value), 1);
-                }
-                else if (_pattern is U8String s) {
-                    (offset, length) = (span.IndexOf(s), s.Length);
-                }
-                else (offset, length) = span.FindNonAscii(_pattern);
+                var (offset, length) = _pattern switch {
+                    byte b => (span.IndexOf(b), 1),
+                    char c when c <= 0x7F => (span.IndexOf((byte)c), 1),
+                    Rune r when r.Value <= 0x7F => (span.IndexOf((byte)r.Value), 1),
+                    U8String s => (span.IndexOf(s), s.Length),
+                    _ => span.FindNonAscii(_pattern),
+                };
                 var remainderOffset = offset + length;
 
                 _current = (source.Offset, offset);
@@ -213,3 +205,4 @@ static class SplitExtensions {
     //     return new(source, new(a, b));
     // }
 }
+

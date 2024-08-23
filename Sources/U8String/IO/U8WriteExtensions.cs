@@ -30,13 +30,13 @@ public static partial class U8WriteExtensions
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static void WriteBuilder<T>(T destination, ref InlineU8Builder builder)
+    internal static void WriteBuilder<T>(T destination, ref InlineU8Builder builder)
         where T : IWriteable
     {
         destination.WriteDispose(ref builder);
     }
 
-    static void WriteUtf8Formattable<T, U>(T destination, U value)
+    internal static void WriteUtf8Formattable<T, U>(T destination, U value)
         where T : IWriteable
         where U : IUtf8SpanFormattable
     {
@@ -61,7 +61,7 @@ public static partial class U8WriteExtensions
         return destination.WriteDisposeAsync(builder, ct);
     }
 
-    static void WriteLineSpan<T>(T destination, ReadOnlySpan<byte> value)
+    internal static void WriteLineSpan<T>(T destination, ReadOnlySpan<byte> value)
         where T : IWriteable
     {
         var length = value.Length + NewLine.Length;
@@ -73,14 +73,14 @@ public static partial class U8WriteExtensions
         destination.WriteDispose(ref builder);
     }
 
-    static void WriteLineBuilder<T>(T destination, ref InlineU8Builder builder)
+    internal static void WriteLineBuilder<T>(T destination, ref InlineU8Builder builder)
         where T : IWriteable
     {
         builder.AppendBytesInlined(NewLine);
         destination.WriteDispose(ref builder);
     }
 
-    static void WriteLineUtf8Formattable<T, U>(T destination, U value)
+    internal static void WriteLineUtf8Formattable<T, U>(T destination, U value)
         where T : IWriteable
         where U : IUtf8SpanFormattable
     {

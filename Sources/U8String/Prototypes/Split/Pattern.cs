@@ -30,6 +30,77 @@ interface ExtendedPattern: Pattern {
     int Count(bytes source);
 }
 
+readonly struct Primitive<T>: ExtendedPattern {
+    readonly T _value;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Primitive(T value) {
+        ThrowHelpers.CheckPattern(value);
+        _value = value;
+    }
+
+    // TODO: Optimize later?
+    public int? Length => _value switch {
+        byte => 1,
+        char c => c.Length(),
+        Rune r => r.Length(),
+        U8String s => s.Length,
+        _ => ThrowHelpers.Unreachable<int>()
+    };
+
+    public bool Contains(bytes source) => _value switch {
+        byte b => source.Contains(b),
+        char c => c < 0x80
+            ? source.Contains((byte)c)
+            : source.IndexOf(c < 0x800
+                ? c.AsTwoBytes()
+                : c.AsThreeBytes()) > -1,
+        Rune r => (uint)r.Value < 0x80
+            ? source.Contains((byte)r.Value)
+            : source.IndexOf(r.Value switch {
+                < 0x800 => r.AsTwoBytes(),
+                < 0x10000 => r.AsThreeBytes(),
+                _ => r.AsFourBytes()
+            }) > -1,
+        U8String s => source.IndexOf(s) > -1,
+        _ => ThrowHelpers.Unreachable<bool>()
+    };
+
+    public int Count(bytes source) => _value switch {
+        byte b => source.Count(b),
+        char c => c < 0x80
+            ? source.Count((byte)c)
+            : source.Count(c < 0x800
+                ? c.AsTwoBytes()
+                : c.AsThreeBytes()),
+        Rune r => (uint)r.Value < 0x80
+            ? source.Count((byte)r.Value)
+            : source.Count(r.Value switch {
+                < 0x800 => r.AsTwoBytes(),
+                < 0x10000 => r.AsThreeBytes(),
+                _ => r.AsFourBytes()
+            }),
+        U8String s => source.Count(s),
+        _ => ThrowHelpers.Unreachable<int>()
+    };
+
+    public Match Find(bytes source) => _value switch {
+        byte b => new(source.IndexOf(b), 1),
+        char c when c < 0x80 => new(source.IndexOf((byte)c), 1),
+        Rune r when (uint)r.Value < 0x80 => new(source.IndexOf((byte)r.Value), 1),
+        U8String s => new(source.IndexOf(s), s.Length),
+        _ => source.FindNonAscii(_value)
+    };
+
+    public Match FindLast(bytes source) => _value switch {
+        byte b => new(source.LastIndexOf(b), 1),
+        char c when c < 0x80 => new(source.LastIndexOf((byte)c), 1),
+        Rune r when (uint)r.Value < 0x80 => new(source.LastIndexOf((byte)r.Value), 1),
+        U8String s => new(source.LastIndexOf(s), s.Length),
+        _ => source.FindLastNonAscii(_value)
+    };
+}
+
 [SkipLocalsInit]
 static class PatternExtensions {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -47,18 +118,18 @@ static class PatternExtensions {
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static int CountCharSplit(bytes source, char c) {
-        return c <= 0x7F
+        return c < 0x80
             ? source.Count((byte)c) + 1
-            : source.Count(c <= 0x7FF ? c.AsTwoBytes() : c.AsThreeBytes()) + 1;
+            : source.Count(c < 0x800 ? c.AsTwoBytes() : c.AsThreeBytes()) + 1;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static int CountRuneSplit(bytes source, Rune r) {
-        return (uint)r.Value <= 0x7F
+        return (uint)r.Value < 0x80
             ? source.Count((byte)r.Value) + 1
             : source.Count(r.Value switch {
-                <= 0x7FF => r.AsTwoBytes(),
-                <= 0xFFFF => r.AsThreeBytes(),
+                < 0x800 => r.AsTwoBytes(),
+                < 0x10000 => r.AsThreeBytes(),
                 _ => r.AsFourBytes()
             }) + 1;
     }
@@ -80,9 +151,10 @@ static class PatternExtensions {
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Match FindNonAsciiChar(bytes source, char c) {
+        Debug.Assert(c > 0x7F);
         int length;
         bytes needle;
-        if (c <= 0x7FF) {
+        if (c < 0x800) {
             needle = c.AsTwoBytes().AsSpan();
             length = 2;
         }
@@ -95,13 +167,14 @@ static class PatternExtensions {
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Match FindNonAsciiRune(bytes source, Rune r) {
+        Debug.Assert(r.Value > 0x7F);
         int length;
         bytes needle;
-        if (r.Value <= 0x7FF) {
+        if (r.Value < 0x800) {
             needle = r.AsTwoBytes().AsSpan();
             length = 2;
         }
-        else if (r.Value <= 0xFFFF) {
+        else if (r.Value < 0x10000) {
             needle = r.AsThreeBytes().AsSpan();
             length = 3;
         }
@@ -110,6 +183,17 @@ static class PatternExtensions {
             length = 4;
         }
         return new(source.IndexOf(needle), length);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Match FindLastNonAscii<T>(this bytes source, T pattern) {
+        Debug.Assert(pattern is not (byte or U8String or Pattern or Splitter));
+        throw new NotImplementedException();
+        // return pattern switch {
+        //     char c => FindLastNonAsciiChar(source, c),
+        //     Rune r => FindLastNonAsciiRune(source, r),
+        //     _ => Unsupported<T, Match>(),
+        // };
     }
 
     [DoesNotReturn, StackTraceHidden]
@@ -128,6 +212,91 @@ interface ExtendedSplitter: Splitter {
     int CountSegments(bytes source);
     int FillSegments(Span<U8Range> segments, bytes source);
     int FillSegments(Span<U8String> segments, bytes source);
+}
+
+readonly struct TrimWhitespace<T>: Splitter {
+    readonly T _pattern;
+
+    public TrimWhitespace(T pattern) {
+        ThrowHelpers.CheckPattern(pattern);
+        _pattern = pattern;
+    }
+
+    public SegmentMatch FindSegment(bytes source) {
+        throw new NotImplementedException();
+    }
+
+    public SegmentMatch FindLastSegment(bytes source) {
+        throw new NotImplementedException();
+    }
+}
+
+readonly struct SkipEmpty<T>: Splitter {
+    readonly T _pattern;
+
+    public SkipEmpty(T pattern) {
+        ThrowHelpers.CheckPattern(pattern);
+        _pattern = pattern;
+    }
+
+    // We have to specialize this just like Split<T> itself
+    // to ensure optimal codegen that prevents inlining artifacts.
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public SegmentMatch FindSegment(bytes source) => _pattern switch {
+        Splitter => FindSplitter(source, _pattern),
+        Pattern => FindPattern(source, _pattern),
+        _ => FindPattern(source, new Primitive<T>(_pattern)),
+    };
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static SegmentMatch FindPattern<U>(bytes source, U pattern) {
+        Debug.Assert(pattern is Pattern);
+
+        var offset = 0;
+        while (offset < source.Length) {
+            var match = ((Pattern)pattern)
+                .Find(source.SliceUnsafe(offset));
+            var remainder = match.Offset + match.Length;
+
+            var segment = match.IsFound
+                ? new(offset, match.Offset, offset + remainder)
+                : SegmentMatch.Last(offset, source.Length - offset);
+
+            if (segment.SegmentLength > 0) {
+                return segment;
+            }
+
+            offset += remainder;
+        }
+
+        return SegmentMatch.NotFound;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static SegmentMatch FindSplitter(bytes source, T splitter) {
+        Debug.Assert(splitter is Splitter);
+
+        var offset = 0;
+        while (offset < source.Length) {
+            var segment = ((Splitter)splitter)
+                .FindSegment(source.SliceUnsafe(offset));
+
+            if (segment.SegmentLength > 0) {
+                return segment.ShiftBy(offset);
+            }
+            if (segment.IsLast) {
+                break;
+            }
+
+            offset += segment.RemainderOffset;
+        }
+
+        return SegmentMatch.NotFound;
+    }
+
+    public SegmentMatch FindLastSegment(bytes source) {
+        throw new NotImplementedException();
+    }
 }
 
 // readonly struct SkipEmptySplitter<T>: Splitter
@@ -151,7 +320,7 @@ interface ExtendedSplitter: Splitter {
 //                 remainderOffset = matchOffset + matchLength;
 //             }
 //             else {
-//                 (segmentOffset, segmentLength, remainderOffset) = 
+//                 (segmentOffset, segmentLength, remainderOffset) =
 //                     ((Splitter)_pattern).FindSegment(haystack);
 //             }
 
@@ -206,6 +375,11 @@ readonly struct SegmentMatch(
     public readonly int RemainderOffset = remainderOffset;
 
     public static SegmentMatch NotFound => new(0, -1, 0);
+    public static SegmentMatch Last(int offset, int length) => new(offset, length, -1);
+
+    internal SegmentMatch ShiftBy(int offset) {
+        return new(SegmentOffset + offset, SegmentLength, RemainderOffset + offset);
+    }
 
     public void Deconstruct(out int segmentOffset, out int segmentLength, out int remainderOffset) {
         segmentOffset = SegmentOffset;

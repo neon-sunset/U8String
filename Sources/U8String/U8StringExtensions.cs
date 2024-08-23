@@ -5,8 +5,7 @@ namespace U8;
 /// <summary>
 /// Provides extension methods to integrate <see cref="U8String"/> with the .NET type system.
 /// </summary>
-public static class U8StringExtensions
-{
+public static class U8StringExtensions {
     /// <inheritdoc cref="U8String(ImmutableArray{byte})"/>
     public static U8String AsU8String(this ImmutableArray<byte> value) => new(value);
 
@@ -41,8 +40,7 @@ public static class U8StringExtensions
     /// <param name="value">The value to convert.</param>
     /// <returns>U8String representation of the value.</returns>
     public static U8String ToU8String<T>(this T value)
-        where T : IUtf8SpanFormattable
-    {
+    where T : IUtf8SpanFormattable {
         return U8String.Create(value);
     }
 
@@ -54,8 +52,7 @@ public static class U8StringExtensions
     /// <param name="format">The format to use.</param>
     /// <returns>U8String representation of the value.</returns>
     public static U8String ToU8String<T>(this T value, ReadOnlySpan<char> format)
-        where T : IUtf8SpanFormattable
-    {
+    where T : IUtf8SpanFormattable {
         return U8String.Create(value, format);
     }
 
@@ -67,8 +64,7 @@ public static class U8StringExtensions
     /// <param name="provider">The format provider to use.</param>
     /// <returns>U8String representation of the value.</returns>
     public static U8String ToU8String<T>(this T value, IFormatProvider? provider)
-        where T : IUtf8SpanFormattable
-    {
+    where T : IUtf8SpanFormattable {
         return U8String.Create(value, provider);
     }
 
@@ -83,8 +79,8 @@ public static class U8StringExtensions
     public static U8String ToU8String<T>(
         this T value,
         ReadOnlySpan<char> format,
-        IFormatProvider? provider) where T : IUtf8SpanFormattable
-    {
+        IFormatProvider? provider)
+    where T : IUtf8SpanFormattable {
         return U8String.Create(value, format, provider);
     }
 }

@@ -6,17 +6,20 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup>
     <PublishAot>true</PublishAot>
     <MetricsSupport>false</MetricsSupport>
-    <!-- <DistilAllMethods>true</DistilAllMethods> -->
-    <IlcInstructionSet>native</IlcInstructionSet>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <OptimizationPreference>Speed</OptimizationPreference>
-    <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
     <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);U8.Generated</InterceptorsPreviewNamespaces>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <StackTraceSupport>false</StackTraceSupport>
+    <IlcInstructionSet>native</IlcInstructionSet>
+    <OptimizationPreference>Speed</OptimizationPreference>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,11 +27,8 @@
     <ProjectReference Include="..\..\Sources\U8String.Optimization\U8String.Optimization.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
-  <!-- <ItemGroup>
-    <PackageReference Include="DistIL.OptimizerTask" Version="0.7.0-preview">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-  </ItemGroup> -->
+  <ItemGroup>
+    <DirectPInvoke Include="libc" Condition="'$(OS)' != 'Windows_NT'" />
+  </ItemGroup>
 
 </Project>

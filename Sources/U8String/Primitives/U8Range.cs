@@ -22,7 +22,7 @@ public readonly struct U8Range: IEquatable<U8Range> {
 
     internal long Packed {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Unsafe.As<U8Range, long>(ref Unsafe.AsRef(in this));
+        get => Unsafe.BitCast<U8Range, long>(this);
     }
 
     [DebuggerStepThrough]

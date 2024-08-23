@@ -82,7 +82,10 @@ static class ThrowHelpers {
         switch (pattern) {
             case byte b: CheckAscii(b); break;
             case char c: CheckSurrogate(c); break;
-            case not (Rune or U8String or Pattern or Splitter):
+            // TODO: EH UX
+            case U8String s when s.IsEmpty:
+                SequenceIsEmpty<U8String>(); break;
+            case not (Rune or Pattern or Splitter):
                 Unsupported(); break;
         }
 

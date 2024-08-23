@@ -247,6 +247,7 @@ static class U8Interpolation
         goto Retry;
     }
 
+    // TODO: Refactor for inlining-friendly layout
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void AppendConstantString<T>(ref T handler, [ConstantExpected] string s)
         where T : struct, IInterpolatedHandler
