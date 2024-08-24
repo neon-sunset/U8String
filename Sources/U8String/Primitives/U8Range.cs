@@ -16,21 +16,18 @@ namespace U8.Primitives;
 /// <seealso cref="U8Source"/>
 /// <seealso cref="U8String.Source"/>
 [StructLayout(LayoutKind.Sequential)]
-public readonly struct U8Range : IEquatable<U8Range>
-{
+public readonly struct U8Range: IEquatable<U8Range> {
     internal readonly int Offset;
     public readonly int Length;
 
-    internal long Packed
-    {
+    internal long Packed {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Unsafe.As<U8Range, long>(ref Unsafe.AsRef(in this));
+        get => Unsafe.BitCast<U8Range, long>(this);
     }
 
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public U8Range(int offset, int length)
-    {
+    public U8Range(int offset, int length) {
         Debug.Assert((uint)offset <= int.MaxValue);
         Debug.Assert((uint)length <= int.MaxValue);
 
@@ -39,14 +36,12 @@ public readonly struct U8Range : IEquatable<U8Range>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(U8Range other)
-    {
+    public bool Equals(U8Range other) {
         return Packed == other.Packed;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override bool Equals(object? obj)
-    {
+    public override bool Equals(object? obj) {
         return obj is U8Range range && Equals(range);
     }
 
@@ -54,14 +49,12 @@ public readonly struct U8Range : IEquatable<U8Range>
     public override int GetHashCode() => Packed.GetHashCode();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(U8Range left, U8Range right)
-    {
+    public static bool operator ==(U8Range left, U8Range right) {
         return left.Equals(right);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(U8Range left, U8Range right)
-    {
+    public static bool operator !=(U8Range left, U8Range right) {
         return !(left == right);
     }
 }

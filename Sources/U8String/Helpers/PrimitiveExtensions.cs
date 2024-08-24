@@ -6,6 +6,25 @@ namespace U8.Primitives;
 
 static class PrimitiveExtensions
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int Length(this char c) {
+        return (ushort)c switch {
+            < 0x80 => 1,
+            < 0x800 => 2,
+            _ => 3
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int Length(this Rune r) {
+        return (uint)r.Value switch {
+            < 0x80 => 1,
+            < 0x800 => 2,
+            < 0x10000 => 3,
+            _ => 4
+        };
+    }
+
     internal static int TotalLength(this U8Range[] ranges)
     {
         var total = 0;

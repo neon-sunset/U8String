@@ -11,6 +11,7 @@ namespace U8.Shared;
 
 internal static class U8Manipulation
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static U8String ConcatUnchecked(ReadOnlySpan<byte> left, byte right)
     {
         Debug.Assert(U8Info.IsAsciiByte(in right));
@@ -26,6 +27,7 @@ internal static class U8Manipulation
         return new U8String(value, length, neverEmpty: true);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static U8String ConcatUnchecked(byte left, ReadOnlySpan<byte> right)
     {
         Debug.Assert(U8Info.IsAsciiByte(in left));
@@ -40,6 +42,7 @@ internal static class U8Manipulation
         return new U8String(value, length, neverEmpty: true);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static U8String ConcatUnchecked(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
     {
         Debug.Assert(!left.IsEmpty || !right.IsEmpty);

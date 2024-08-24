@@ -1,61 +1,51 @@
-﻿using System.Net;
+﻿using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
-
 using U8.IO;
 
 using var cts = new CancellationTokenSource();
 using var sigint = PosixSignalRegistration.Create(
-    PosixSignal.SIGINT, ctx =>
-{
-    ctx.Cancel = true;
-    cts.Cancel();
-});
-
-var channels = args.Select(U8String.Create).ToArray();
-if (channels is [])
-{
-    U8Console.WriteLine("Usage: <channel1> <channel2>..."u8);
+    PosixSignal.SIGINT, ctx => {
+        ctx.Cancel = true;
+        cts.Cancel();
+    });
+var ct = cts.Token;
+var chans = args.Select(u8str.Create).ToArray();
+if (chans is []) {
+    u8out.WriteLine(u8("Usage: <channel1> <channel2>..."));
     return;
 }
 
-U8Console.WriteLine($"Connecting to {U8String.Join(", "u8, channels)}...");
-using var socket = new Socket(
-    AddressFamily.InterNetwork,
-    SocketType.Stream,
-    ProtocolType.Tcp);
+u8out.WriteLine($"Connecting to {u8str.Join(", "u8, chans)}...");
+using var tcp = new TcpClient();
+await tcp.ConnectAsync("irc.chat.twitch.tv", 6697, ct);
+using var stream = new SslStream(tcp.GetStream());
+await stream.AuthenticateAsClientAsync(new() { TargetHost = "irc.chat.twitch.tv" }, ct);
 
-var address = await Dns.GetHostAddressesAsync("irc.chat.twitch.tv");
-await socket.ConnectAsync(address, 6667, cts.Token);
-await socket.SendAsync(u8("PASS SCHMOOPIIE\r\n"), cts.Token);
-await socket.SendAsync(u8("NICK justinfan54970\r\n"), cts.Token);
-await socket.SendAsync(u8("USER justinfan54970 8 * :justinfan54970\r\n"), cts.Token);
-foreach (var channel in channels)
-{
-    await socket.SendAsync($"JOIN #{channel}\r\n", ct: cts.Token);
+await stream.WriteAsync(u8("PASS SCHMOOPIIE\r\n"), ct);
+await stream.WriteAsync(u8("NICK justinfan54970\r\n"), ct);
+await stream.WriteAsync(u8("USER justinfan54970 8 * :justinfan54970\r\n"), ct);
+foreach (var chan in chans) {
+    await stream.WriteAsync($"JOIN #{chan}\r\n", ct);
 }
-U8Console.WriteLine("Connected! To exit, press Ctrl+C."u8);
+u8out.WriteLine(u8("Connected! To exit, press Ctrl+C."));
 
-try
-{
-    await foreach (var line in socket
+try {
+    var lines = stream
         .ReadU8Lines(disposeSource: false)
-        .WithCancellation(cts.Token))
-    {
-        var message = Message.Parse(line);
-        if (message is null) continue;
-        if (message.Command == "PING"u8)
-        {
-            await socket.SendAsync(u8("PONG :tmi.twitch.tv\r\n"));
+        .WithCancellation(ct);
+    await foreach (var line in lines) {
+        var msg = Message.Parse(line);
+        if (msg is null) continue;
+        if (msg.Command == "PING"u8) {
+            await stream.WriteAsync(u8("PONG :tmi.twitch.tv\r\n"));
         }
-        else U8Console.WriteLine($"#{message.Channel} {message.Nickname}: {message.Body}");
+        else u8out.WriteLine($"#{msg.Channel} {msg.Nickname}: {msg.Body}");
     }
 }
 catch (OperationCanceledException) { }
 
-foreach (var channel in channels)
-{
-    await socket.SendAsync($"PART #{channel}\r\n");
+foreach (var chan in chans) {
+    await stream.WriteAsync($"PART #{chan}\r\n");
 }
-await socket.DisconnectAsync(false);
-U8Console.WriteLine("Goodbye!"u8);
+u8out.WriteLine(u8("Goodbye!"));

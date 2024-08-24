@@ -2,24 +2,33 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup>
     <PublishAot>true</PublishAot>
     <MetricsSupport>false</MetricsSupport>
-    <IlcInstructionSet>native</IlcInstructionSet>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <OptimizationPreference>Speed</OptimizationPreference>
     <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);U8.Generated</InterceptorsPreviewNamespaces>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <StackTraceSupport>false</StackTraceSupport>
+    <IlcInstructionSet>native</IlcInstructionSet>
+    <OptimizationPreference>Speed</OptimizationPreference>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Sources\U8String\U8String.csproj" />
     <ProjectReference Include="..\..\Sources\U8String.Optimization\U8String.Optimization.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <DirectPInvoke Include="libc" Condition="'$(OS)' != 'Windows_NT'" />
   </ItemGroup>
 
 </Project>

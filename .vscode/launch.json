@@ -10,7 +10,7 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/Benchmarks/bin/Debug/net8.0/U8String.Benchmarks.dll",
+            "program": "${workspaceFolder}/Benchmarks/bin/Debug/net9.0/U8String.Benchmarks.dll",
             "args": [],
             "cwd": "${workspaceFolder}/Benchmarks",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console

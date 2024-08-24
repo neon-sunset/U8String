@@ -35,31 +35,34 @@ namespace U8;
 [JsonConverter(typeof(U8StringJsonConverter))]
 [CollectionBuilder(typeof(U8String), nameof(Create))]
 [NativeMarshalling(typeof(U8Marshalling))]
-public readonly partial struct U8String :
-    IEqualityOperators<U8String, U8String, bool>,
+public readonly partial struct U8String:
+    IAdditionOperators<U8String, byte, U8String>,
+    IAdditionOperators<U8String, char, U8String>,
+    IAdditionOperators<U8String, Rune, U8String>,
     IAdditionOperators<U8String, U8String, U8String>,
+    IComparable<U8String>,
+    IComparable<U8String?>,
+    ICloneable,
+    IEqualityOperators<U8String, byte[], bool>,
+    IEqualityOperators<U8String, ImmutableArray<byte>, bool>,
+    IEqualityOperators<U8String, U8String, bool>,
     IEquatable<U8String>,
     IEquatable<U8String?>,
     IEquatable<ImmutableArray<byte>>,
     IEquatable<byte[]?>,
-    IComparable<U8String>,
-    IComparable<U8String?>,
     IList<byte>,
     IReadOnlyList<byte>,
-    ICloneable,
     ISpanParsable<U8String>,
     ISpanFormattable,
     IUtf8SpanParsable<U8String>,
-    IUtf8SpanFormattable
-{
+    IUtf8SpanFormattable {
     /// <summary>
     /// Represents an empty <see cref="U8String"/>.
     /// </summary>
     /// <remarks>
     /// Functionally equivalent to <see langword="default(U8String)"/>.
     /// </remarks>
-    public static U8String Empty
-    {
+    public static U8String Empty {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => default;
     }
@@ -73,9 +76,8 @@ public readonly partial struct U8String :
     /// <para/>
     /// Attempting to create a <see cref="U8String"/> with a source length greater than this
     /// may result in <see cref="OutOfMemoryException"/>, <see cref="ArgumentException"/>, or other exceptions.
-    /// </remarks> 
-    public static int MaxSafeLength
-    {
+    /// </remarks>
+    public static int MaxSafeLength {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Array.MaxLength - 1;
     }
@@ -83,14 +85,12 @@ public readonly partial struct U8String :
     internal readonly byte[]? _value;
     internal readonly U8Range _inner;
 
-    internal int Offset
-    {
+    internal int Offset {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _inner.Offset;
     }
 
-    internal int End
-    {
+    internal int End {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _inner.Offset + _inner.Length;
     }
@@ -98,8 +98,7 @@ public readonly partial struct U8String :
     /// <summary>
     /// The number of UTF-8 code units (bytes) in the current <see cref="U8String"/>.
     /// </summary>
-    public int Length
-    {
+    public int Length {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _inner.Length;
     }
@@ -108,10 +107,12 @@ public readonly partial struct U8String :
     /// Indicates whether the current <see cref="U8String"/> is empty.
     /// </summary>
     [MemberNotNullWhen(false, nameof(_value))]
-    public bool IsEmpty
-    {
+    public bool IsEmpty {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _value is null;
+        get {
+            Debug.Assert(_value is null ? Length is 0 : Length > 0);
+            return _value is null;
+        }
     }
 
     /// <summary>
@@ -126,15 +127,12 @@ public readonly partial struct U8String :
     /// <para/>
     /// See <see cref="NullTerminate()"/> for more information.
     /// </remarks>
-    public bool IsNullTerminated
-    {
+    public bool IsNullTerminated {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
+        get {
             var (value, offset, length) = this;
 
-            if (value != null)
-            {
+            if (value != null) {
                 var end = offset + length;
                 // Explicitly split AsRef and Add to skip Debug assert.
                 // This is intended since ptr is potentially out of bounds.
@@ -147,8 +145,7 @@ public readonly partial struct U8String :
         }
     }
 
-    public U8Range Range
-    {
+    public U8Range Range {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _inner;
     }
@@ -156,14 +153,11 @@ public readonly partial struct U8String :
     /// <summary>
     /// The number of UTF-8 code points in the current <see cref="U8String"/>.
     /// </summary>
-    public int RuneCount
-    {
+    public int RuneCount {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
+        get {
             var (source, offset, length) = this;
-            if (source != null)
-            {
+            if (source != null) {
                 return (int)(uint)U8Searching.CountRunes(ref source.AsRef(offset), (uint)length);
             }
 
@@ -171,8 +165,7 @@ public readonly partial struct U8String :
         }
     }
 
-    public U8Source Source
-    {
+    public U8Source Source {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => new(_value);
     }
@@ -189,17 +182,14 @@ public readonly partial struct U8String :
     /// <summary>
     /// Similar to <see cref="UnsafeRef"/>, but does not throw NRE if <see cref="IsEmpty"/> is true.
     /// </summary>
-    internal ref byte DangerousRef
-    {
+    internal ref byte DangerousRef {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
+        get {
             Debug.Assert(_value is null || (uint)(Offset + Length) <= (uint)_value.Length);
 
             ref var reference = ref Unsafe.NullRef<byte>();
             var (value, offset) = (_value, (nint)(uint)Offset);
-            if (value != null)
-            {
+            if (value != null) {
                 reference = ref Unsafe.Add(
                     ref MemoryMarshal.GetArrayDataReference(value), offset);
             }
@@ -211,11 +201,9 @@ public readonly partial struct U8String :
     /// <summary>
     /// Will throw NRE if <see cref="IsEmpty"/> is true.
     /// </summary>
-    internal ref byte UnsafeRef
-    {
+    internal ref byte UnsafeRef {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
+        get {
             Debug.Assert(_value is null || (uint)(Offset + Length) <= (uint)_value.Length);
 
             return ref Unsafe.Add(
@@ -226,11 +214,9 @@ public readonly partial struct U8String :
     /// <summary>
     /// Will throw NRE if <see cref="IsEmpty"/> is true.
     /// </summary>
-    internal ReadOnlySpan<byte> UnsafeSpan
-    {
+    internal ReadOnlySpan<byte> UnsafeSpan {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
+        get {
             Debug.Assert(_value is null || (uint)(Offset + Length) <= (uint)_value.Length);
 
             return MemoryMarshal.CreateReadOnlySpan(
@@ -243,8 +229,7 @@ public readonly partial struct U8String :
     /// Will throw NRE if <see cref="IsEmpty"/> is true.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal ref byte UnsafeRefAdd(int index)
-    {
+    internal ref byte UnsafeRefAdd(int index) {
         Debug.Assert(_value is null || (uint)(Offset + Length) <= (uint)_value.Length);
 
         return ref Unsafe.Add(
@@ -255,8 +240,7 @@ public readonly partial struct U8String :
     /// Evaluates if the current <see cref="U8String"/> contains only ASCII characters.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsAscii()
-    {
+    public bool IsAscii() {
         var deref = this;
         return deref.IsEmpty || Ascii.IsValid(deref.UnsafeSpan);
     }
@@ -265,19 +249,16 @@ public readonly partial struct U8String :
     /// Evaluates if the current <see cref="U8String"/> is normalized to the specified
     /// Unicode normalization form (default: <see cref="NormalizationForm.FormC"/>).
     /// </summary>
-    internal bool IsNormalized(NormalizationForm form = NormalizationForm.FormC)
-    {
+    internal bool IsNormalized(NormalizationForm form = NormalizationForm.FormC) {
         var source = this;
-        if (!source.IsEmpty)
-        {
+        if (!source.IsEmpty) {
             var value = source.UnsafeSpan;
 
             // Drain always normalized ASCII bytes
             var nonAsciiOffset = (int)Polyfills.Text.Ascii.GetIndexOfFirstNonAsciiByte(value);
             value = value.SliceUnsafe(nonAsciiOffset);
 
-            if (value.Length > 0)
-            {
+            if (value.Length > 0) {
                 throw new NotImplementedException();
             }
         }
@@ -290,17 +271,14 @@ public readonly partial struct U8String :
     /// </summary>
     /// <param name="value">The <see cref="ReadOnlySpan{T}"/> to validate.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsValid(ReadOnlySpan<byte> value)
-    {
+    public static bool IsValid(ReadOnlySpan<byte> value) {
         return value.Length <= 0 || Utf8.IsValid(value);
     }
 
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void Validate(ReadOnlySpan<byte> value)
-    {
-        if (!IsValid(value))
-        {
+    internal static void Validate(ReadOnlySpan<byte> value) {
+        if (!IsValid(value)) {
             ThrowHelpers.InvalidUtf8();
         }
     }
@@ -310,8 +288,7 @@ public readonly partial struct U8String :
     public ref readonly byte GetPinnableReference() => ref DangerousRef;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void Deconstruct(out byte[]? value, out int offset, out int length)
-    {
+    internal void Deconstruct(out byte[]? value, out int offset, out int length) {
         value = _value;
         offset = Offset;
         length = Length;

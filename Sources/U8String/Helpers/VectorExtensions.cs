@@ -4,7 +4,7 @@ using System.Runtime.Intrinsics.Arm;
 
 namespace U8;
 
-internal static class VectorExtensions
+static class VectorExtensions
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static uint GetMatchCount<T>(this Vector512<T> mask)

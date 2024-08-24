@@ -10,10 +10,8 @@ namespace U8.Benchmarks;
 [ShortRunJob]
 [MemoryDiagnoser]
 // [DisassemblyDiagnoser(maxDepth: 3)]
-public class Serialization
-{
-    public record Person
-    {
+public class Serialization {
+    public record Person {
         public required string FirstName { get; init; }
         public required string LastName { get; init; }
         public required string Title { get; init; }
@@ -21,23 +19,20 @@ public class Serialization
         public required Person? Another { get; init; }
     }
 
-    public record PersonU8
-    {
-        public required U8String FirstName { get; init; }
-        public required U8String LastName { get; init; }
-        public required U8String Title { get; init; }
-        public required U8String ID { get; init; }
+    public record PersonU8 {
+        public required u8str FirstName { get; init; }
+        public required u8str LastName { get; init; }
+        public required u8str Title { get; init; }
+        public required u8str ID { get; init; }
         public required PersonU8? Another { get; init; }
     }
 
-    private static readonly Person PersonValue = new()
-    {
+    static readonly Person PersonValue = new() {
         FirstName = "John",
         LastName = "Doe",
         Title = "Software Engineer",
         ID = "123456789",
-        Another = new()
-        {
+        Another = new() {
             FirstName = "John",
             LastName = "Doe",
             Title = "Software Engineer",
@@ -46,14 +41,12 @@ public class Serialization
         }
     };
 
-    private static readonly PersonU8 PersonU8Value = new()
-    {
+    static readonly PersonU8 PersonU8Value = new() {
         FirstName = u8("John"),
         LastName = u8("Doe"),
         Title = u8("Software Engineer"),
         ID = u8("123456789"),
-        Another = new()
-        {
+        Another = new() {
             FirstName = u8("John"),
             LastName = u8("Doe"),
             Title = u8("Software Engineer"),
@@ -62,7 +55,7 @@ public class Serialization
         }
     };
 
-    private static readonly U8String PersonBytes = PersonValue.ToU8Json(JsonContext.Default.Person);
+    static readonly U8String PersonBytes = PersonValue.ToU8Json(JsonContext.Default.Person);
 
     [Benchmark(Baseline = true)]
     public Person? DeserializePerson() =>
@@ -89,4 +82,4 @@ public class Serialization
 
 [JsonSerializable(typeof(Serialization.Person))]
 [JsonSerializable(typeof(Serialization.PersonU8))]
-public sealed partial class JsonContext : JsonSerializerContext { }
+public sealed partial class JsonContext: JsonSerializerContext;

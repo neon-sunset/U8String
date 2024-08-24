@@ -73,30 +73,30 @@ public interface IU8CaseConverter
     void ToUpper(ReadOnlySpan<byte> source, ref InlineU8Builder destination);
 }
 
-internal interface IEnumerable<T, TEnumerator> : IEnumerable<T>
+interface IEnumerable<T, TEnumerator> : IEnumerable<T>
     where TEnumerator : struct, IEnumerator<T>
 {
     new TEnumerator GetEnumerator();
 }
 
-internal interface IU8Enumerable<TEnumerator> : IEnumerable<U8String, TEnumerator>
+interface IU8Enumerable<TEnumerator> : IEnumerable<U8String, TEnumerator>
     where TEnumerator : struct, IU8Enumerator;
 
-internal interface IU8Enumerator : IEnumerator<U8String>;
+interface IU8Enumerator : IEnumerator<U8String>;
 
 public interface IU8Formattable : IUtf8SpanFormattable
 {
     U8String ToU8String(ReadOnlySpan<char> format, IFormatProvider? provider);
 }
 
-internal interface IU8Split<T> : IEnumerable<U8String>
+interface IU8Split<T> : IEnumerable<U8String>
     where T : struct
 {
     T Separator { get; }
     U8String Value { get; }
 }
 
-internal interface IU8SliceCollection : ICollection<U8String>
+interface IU8SliceCollection : ICollection<U8String>
 {
     // TODO: Better naming?
     // It does make sense that the .Source of U8String is U8Source while
@@ -105,7 +105,7 @@ internal interface IU8SliceCollection : ICollection<U8String>
     U8String Value { get; }
 }
 
-internal interface IU8Buffer
+interface IU8Buffer
 {
     ReadOnlySpan<byte> Value { get; }
 }

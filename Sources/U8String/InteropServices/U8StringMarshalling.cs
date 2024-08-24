@@ -8,29 +8,15 @@ namespace U8.InteropServices;
 // TODO: Consider switching to stateful structs
 // TODO: Double-check that the flow of get pinnable ref -> ConvertToUnmanaged is correct
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-[CustomMarshaller(typeof(U8String), MarshalMode.ManagedToUnmanagedIn, typeof(Raw))]
-[CustomMarshaller(typeof(U8String), MarshalMode.Default, typeof(U8Marshalling))]
+[CustomMarshaller(typeof(U8String), MarshalMode.Default, typeof(Raw))]
 public static unsafe class U8Marshalling
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static U8String ConvertToManaged(byte* unmanaged)
-    {
-        return new U8String(unmanaged);
-    }
-
-    public static byte* ConvertToUnmanaged(U8String managed)
-    {
-        throw new NotSupportedException(
-            "Use one of the member types for explicitly specified marshalling: " +
-            $"{nameof(Raw)}, {nameof(LikelyNullTerminated)} or {nameof(UnlikelyNullTerminated)}.");
-    }
-
     [CustomMarshaller(typeof(U8String), MarshalMode.ManagedToUnmanagedIn, typeof(LikelyNullTerminated))]
     public static class LikelyNullTerminated
     {
         // TODO: see if there's a way to create this on stack on occasion
         // the callee writes to the address, messing up the null byte
-        static byte Empty = (byte)'\0';
+        static readonly byte Empty;
 
         public static byte* ConvertToUnmanaged(U8String managed)
         {
@@ -70,7 +56,7 @@ public static unsafe class U8Marshalling
     [CustomMarshaller(typeof(U8String), MarshalMode.ManagedToUnmanagedIn, typeof(UnlikelyNullTerminated))]
     public ref struct UnlikelyNullTerminated
     {
-        static byte Empty = (byte)'\0';
+        static readonly byte Empty;
 
         ref byte _ptr;
         bool _allocated;
@@ -93,7 +79,7 @@ public static unsafe class U8Marshalling
             }
             else if (managed.IsEmpty)
             {
-                _ptr = ref Empty;
+                _ptr = ref Unsafe.AsRef(in Empty);
             }
             else
             {
@@ -108,7 +94,7 @@ public static unsafe class U8Marshalling
         {
             if (length > BufferSize)
             {
-                dst = ref Unsafe.AsRef<byte>((byte*)NativeMemory.Alloc((uint)length + 1));
+                dst = ref Unsafe.AsRef<byte>(NativeMemory.Alloc((uint)length + 1));
                 _allocated = true;
             }
 
@@ -137,9 +123,25 @@ public static unsafe class U8Marshalling
         }
     }
 
-    [CustomMarshaller(typeof(U8String), MarshalMode.ManagedToUnmanagedIn, typeof(Raw))]
+    [CustomMarshaller(typeof(U8String), MarshalMode.UnmanagedToManagedIn, typeof(Validate))]
+    public static class Validate
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static U8String ConvertToManaged(byte* unmanaged)
+        {
+            return new(MemoryMarshal.CreateReadOnlySpanFromNullTerminated(unmanaged));
+        }
+    }
+
+    [CustomMarshaller(typeof(U8String), MarshalMode.Default, typeof(Raw))]
     public static class Raw
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static U8String ConvertToManaged(byte* unmanaged)
+        {
+            return new(MemoryMarshal.CreateReadOnlySpanFromNullTerminated(unmanaged), skipValidation: true);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte* ConvertToUnmanaged(U8String managed)
         {

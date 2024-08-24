@@ -51,7 +51,7 @@ public class U8FileTests
     }
 
     [Fact]
-    public async void ReadFromFilePath_ThrowsOnNullPath()
+    public async Task ReadFromFilePath_ThrowsOnNullPath()
     {
         Assert.Throws<ArgumentNullException>(() => U8File.Read((string)null!));
         await Assert.ThrowsAsync<ArgumentNullException>(() => U8File.ReadAsync((string)null!));

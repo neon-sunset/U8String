@@ -14,29 +14,24 @@ using var listener = new TcpListener(IPAddress.Any, 6379);
 var state = new ConcurrentDictionary<U8String, U8String>();
 
 listener.Start();
-while (true)
-{
+while (true) {
     _ = HandleConnection(listener.AcceptSocket());
 }
 
-async Task HandleConnection(Socket socket)
-{
+async Task HandleConnection(Socket socket) {
     using var _ = socket;
     using var reader = socket.AsU8Reader(disposeSource: false);
 
-    try
-    {
+    try {
         var args = new List<U8String>();
-        while (true)
-        {
+        while (true) {
             args.Clear();
             var lineRead = await reader.ReadLineAsync();
             if (lineRead is not U8String line) break;
             if (!line.StartsWith('*')) FormatException();
 
             var argsv = int.Parse(line[1..]);
-            for (var i = 0; i < argsv; i++)
-            {
+            for (var i = 0; i < argsv; i++) {
                 line = await reader.ReadLineAsync() ?? [];
 
                 if (!line.StartsWith('$')) FormatException();
@@ -47,35 +42,28 @@ async Task HandleConnection(Socket socket)
                 args.Add(line);
             }
             var reply = ExecuteCommand(args);
-            if (reply == null)
-            {
+            if (reply == null) {
                 await socket.SendAsync(u8("$-1\r\n"));
             }
-            else
-            {
+            else {
                 // Zero-allocation interpolated socket output
                 await socket.SendAsync($"${reply.Value.Length}\r\n{reply}\r\n");
             }
         }
     }
-    catch (Exception e)
-    {
-        try
-        {
-            foreach (var line in u8(e.ToString()).Lines)
-            {
+    catch (Exception e) {
+        try {
+            foreach (var line in u8(e.ToString()).Lines) {
                 await socket.SendAsync($"-{line}\r\n");
             }
         }
-        catch (Exception)
-        {
+        catch (Exception) {
             // nothing we can do
         }
     }
 }
 
-U8String? ExecuteCommand(List<U8String> args)
-{
+U8String? ExecuteCommand(List<U8String> args) {
     var cmd = args[0];
     if (cmd == "GET"u8)
         return state.TryGetValue(args[1], out var value) ? value : null;
@@ -88,7 +76,6 @@ U8String? ExecuteCommand(List<U8String> args)
 }
 
 [DoesNotReturn]
-static void FormatException()
-{
+static void FormatException() {
     throw new FormatException();
 }

@@ -30,13 +30,13 @@ public static partial class U8WriteExtensions
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static void WriteBuilder<T>(T destination, ref InlineU8Builder builder)
+    internal static void WriteBuilder<T>(T destination, ref InlineU8Builder builder)
         where T : IWriteable
     {
         destination.WriteDispose(ref builder);
     }
 
-    static void WriteUtf8Formattable<T, U>(T destination, U value)
+    internal static void WriteUtf8Formattable<T, U>(T destination, U value)
         where T : IWriteable
         where U : IUtf8SpanFormattable
     {
@@ -58,27 +58,29 @@ public static partial class U8WriteExtensions
     {
         var builder = new PooledU8Builder();
         builder.AppendFormatted(value);
-        builder.AppendBytesInlined(NewLine);
         return destination.WriteDisposeAsync(builder, ct);
     }
 
-    static void WriteLineSpan<T>(T destination, ReadOnlySpan<byte> value)
+    internal static void WriteLineSpan<T>(T destination, ReadOnlySpan<byte> value)
         where T : IWriteable
     {
-        var builder = new InlineU8Builder(value.Length + NewLine.Length);
-        builder.AppendBytesUnchecked(value);
-        builder.AppendBytesUnchecked(NewLine);
+        var length = value.Length + NewLine.Length;
+        var builder = new InlineU8Builder(length, bytesOnly: true);
+        var buffer = builder.Free;
+        buffer.WriteUnchecked(value);
+        buffer.WriteUnchecked(NewLine, value.Length);
+        builder.BytesWritten = length;
         destination.WriteDispose(ref builder);
     }
 
-    static void WriteLineBuilder<T>(T destination, ref InlineU8Builder builder)
+    internal static void WriteLineBuilder<T>(T destination, ref InlineU8Builder builder)
         where T : IWriteable
     {
         builder.AppendBytesInlined(NewLine);
         destination.WriteDispose(ref builder);
     }
 
-    static void WriteLineUtf8Formattable<T, U>(T destination, U value)
+    internal static void WriteLineUtf8Formattable<T, U>(T destination, U value)
         where T : IWriteable
         where U : IUtf8SpanFormattable
     {
@@ -91,9 +93,12 @@ public static partial class U8WriteExtensions
     static ValueTask WriteLineMemoryAsync<T>(T destination, ReadOnlyMemory<byte> value, CancellationToken ct)
         where T : IWriteable
     {
-        var builder = new PooledU8Builder(value.Length + NewLine.Length);
-        builder.AppendBytesUnchecked(value.Span);
-        builder.AppendBytesUnchecked(NewLine);
+        var length = value.Length + NewLine.Length;
+        var builder = new PooledU8Builder(length, bytesOnly: true);
+        var buffer = builder.Free;
+        buffer.WriteUnchecked(value.Span);
+        buffer.WriteUnchecked(NewLine, value.Length);
+        builder.BytesWritten = length;
         return destination.WriteDisposeAsync(builder, ct);
     }
 
@@ -139,10 +144,13 @@ public static partial class U8WriteEnumExtensions
     {
         var formatted = value.ToU8String();
         var newline = U8WriteExtensions.NewLine;
+        var length = formatted.Length + newline.Length;
 
-        var builder = new InlineU8Builder(formatted.Length + newline.Length);
-        builder.AppendBytesUnchecked(formatted);
-        builder.AppendBytesUnchecked(newline);
+        var builder = new InlineU8Builder(length, bytesOnly: true);
+        var buffer = builder.Free;
+        buffer.WriteUnchecked(formatted);
+        buffer.WriteUnchecked(newline, formatted.Length);
+        builder.BytesWritten = length;
         destination.WriteDispose(ref builder);
     }
 
@@ -152,10 +160,13 @@ public static partial class U8WriteEnumExtensions
     {
         var formatted = value.ToU8String();
         var newline = U8WriteExtensions.NewLine;
+        var length = formatted.Length + newline.Length;
 
-        var builder = new PooledU8Builder(formatted.Length + newline.Length);
-        builder.AppendBytesUnchecked(formatted);
-        builder.AppendBytesUnchecked(newline);
+        var builder = new PooledU8Builder(length, bytesOnly: true);
+        var buffer = builder.Free;
+        buffer.WriteUnchecked(formatted);
+        buffer.WriteUnchecked(newline, formatted.Length);
+        builder.BytesWritten = length;
         return destination.WriteDisposeAsync(builder, ct);
     }
 }

@@ -19,10 +19,10 @@ public class Formatting
     public string FormatDateTimeU16() => $"Date is {DateTime}";
 
     [Benchmark]
-    public U8String FormatEnum() => u8($"Enum is ${StringComparison.Ordinal}");
+    public U8String FormatEnum() => u8($"Enum is {StringComparison.Ordinal}");
 
     [Benchmark]
-    public string FormatEnumU16() => $"Enum is ${StringComparison.Ordinal}";
+    public string FormatEnumU16() => $"Enum is {StringComparison.Ordinal}";
 
     [Benchmark]
     public U8String FormatBool() => u8($"{true} {false}");

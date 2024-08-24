@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
@@ -80,6 +81,22 @@ public /* ref */ struct InlineU8Builder : IInterpolatedHandlerImplementation
         }
 
         Provider = formatProvider ?? CultureInfo.InvariantCulture;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal InlineU8Builder(int length, bool bytesOnly)
+    {
+        Debug.Assert(bytesOnly);
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
+
+        Unsafe.SkipInit(out _inline);
+
+        if (length > InlineBuffer64.Length)
+        {
+            _rented = ArrayPool<byte>.Shared.Rent(length);
+        }
+
+        Provider = null!;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -301,6 +318,16 @@ public struct PooledU8Builder : IInterpolatedHandlerImplementation
     {
         _array = ArrayPool<byte>.Shared.Rent(literalLength + (formattedCount * 96));
         Provider = formatProvider ?? CultureInfo.InvariantCulture;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal PooledU8Builder(int length, bool bytesOnly)
+    {
+        Debug.Assert(bytesOnly);
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
+
+        _array = ArrayPool<byte>.Shared.Rent(length);
+        Provider = null!;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
