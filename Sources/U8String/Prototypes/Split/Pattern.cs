@@ -84,6 +84,7 @@ readonly struct Primitive<T>: ExtendedPattern {
         _ => ThrowHelpers.Unreachable<int>()
     };
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Match Find(bytes source) => _value switch {
         byte b => new(source.IndexOf(b), 1),
         char c when c < 0x80 => new(source.IndexOf((byte)c), 1),
@@ -92,6 +93,7 @@ readonly struct Primitive<T>: ExtendedPattern {
         _ => source.FindNonAscii(_value)
     };
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Match FindLast(bytes source) => _value switch {
         byte b => new(source.LastIndexOf(b), 1),
         char c when c < 0x80 => new(source.LastIndexOf((byte)c), 1),
